@@ -1,0 +1,10 @@
+{
+    "scan_directories": [
+        "/Users/bje/Desktop/CTs/Shoulder"
+    ],
+    "pocketbase_url": "http://127.0.0.1:8090",
+    "collection_name": "dicom_files",
+    "admin_email": "bje001@gmail.com",
+    "admin_password": "Btz0TanFSV9njD",
+    "max_workers": 8
+}
