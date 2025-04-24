@@ -61,17 +61,22 @@ class DicomScanner:
                 for root, _, files in os.walk(directory):
                     for file in files:
                         file_path = os.path.join(root, file)
+                        # Check if the file_path is already in the database
+                        if self.mongo_collection.find_one({"file_path": file_path}):
+                            continue
                         dicom_files.append(file_path)
                         batch += 1
                         if batch > MAX_BATCH:
                             logger.info(f"Found MAX_BATCH DICOM files")
+                            print (f"Found {MAX_BATCH} files")
                             return dicom_files
                         if FRIENDLY:
                             sleep(0.1)
             except Exception as e:
                 logger.error(f"Error scanning directory {directory}: {e}")
-        
+
         logger.info(f"Found {len(dicom_files)} DICOM files")
+        print(f"Found {len(dicom_files)} DICOM files")
         return dicom_files
 
     def _getMajorAxisFromDirCos(self, x, y, z):
@@ -146,6 +151,10 @@ class DicomScanner:
         try:
             SeriesDate = self._get_tag_value(ds, "SeriesDate", "19800101")
             SeriesTime = self._get_tag_value(ds, "SeriesTime", "010101")
+            if len(SeriesDate) < 1:
+                SeriesDate = '20000101'
+            if len(SeriesTime) < 1:
+                SeriesTime = '120000'
             s = SeriesDate + SeriesTime
             ComputedDateTime = datetime.strptime(s, '%Y%m%d%H%M%S')
 
@@ -173,7 +182,7 @@ class DicomScanner:
                 "PixelSpacing": self._get_tag_value(ds, "PixelSpacing", 0),
                 "FieldOfView": self._get_tag_value(ds, "FieldOfView", 0),
                 "KVP": self._get_tag_value(ds, "KVP", 0),
-                "ExposureInmAs": self._get_tag_value(ds, "ExposureInmAs", 0),
+                "Exposure": self._get_tag_value(ds, "Exposure", 0),
                 "ConvolutionKernel": self._get_tag_value(ds, "ConvolutionKernel", "Unknown"),
                 "RepetitionTime": self._get_tag_value(ds, "RepetitionTime",0),
                 "EchoTime": self._get_tag_value(ds, "EchoTime",0),
@@ -192,7 +201,7 @@ class DicomScanner:
              logger.warning(f"File not found during tag extraction (FileNotFoundError): {file_path}. Skipping.")
              return None
         except Exception as e:
-            logger.error(f"Error extracting tags from {file_path}: {e}")
+            logger.error(f"Error extracting tags from {file_path}: {e} {data}")
             return None
         return data
 
@@ -272,6 +281,7 @@ class DicomScanner:
                 success_count = sum(1 for result in results if result)
             
             logger.info(f"Successfully processed {success_count} out of {len(dicom_files)} DICOM files")
+            print (f"Successfully processed {success_count} out of {len(dicom_files)} DICOM files")
             if len(dicom_files) < MAX_BATCH:
                 return
             
