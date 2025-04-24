@@ -1,58 +1,457 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DICOM Database Viewer</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pocketbase/0.18.0/pocketbase.umd.js"></script>
-    <style>
-        .filter-section {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-        }
-        .filter-section.active {
-            max-height: 2000px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DICOM Database Viewer</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pocketbase/0.18.0/pocketbase.umd.js"></script>
+  <style>
+    .hidden {
+      display: none;
+    }
+    .filter-section {
+      max-height: 5000px;
+      overflow: visible;
+      transition: max-height 0.3s ease-out;
+    }
+    .filter-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .filter-item label {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      display: block;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <header class="bg-blue-600 text-white p-4 shadow-md">
-        <div class="container mx-auto">
-            <h1 class="text-2xl font-bold">DICOM Database Viewer</h1>
+  <header class="bg-blue-600 text-white p-4 shadow-md">
+    <div class="container mx-auto">
+      <h1 class="text-2xl font-bold">DICOM Database Viewer</h1>
+    </div>
+  </header>
+
+  <main class="container mx-auto p-4">
+    <!-- Login Form -->
+    <div id="loginSection" class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Login</h2>
+      <form id="loginForm" class="flex flex-col gap-4 max-w-sm">
+        <input type="email" id="emailInput" placeholder="Email" class="p-2 border rounded" required />
+        <input type="password" id="passwordInput" placeholder="Password" class="p-2 border rounded" required />
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Login</button>
+      </form>
+      <p id="loginError" class="text-red-600 mt-2 hidden">Invalid email or password.</p>
+    </div>
+
+    <!-- Filter Section -->
+    <div id="filterSection" class="hidden bg-white rounded-lg shadow-md p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold">Filters</h2>
+        <button id="toggleFilters" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          Show/Hide Filters
+        </button>
+      </div>
+      <form id="filterForm" class="filter-list">
+
+
+        <div class="filter-item">
+          <label for="filePathFilter">File Path</label>
+          <input type="text" id="filePathFilter" name="file_path" class="w-full p-2 border rounded" placeholder="File path" />
         </div>
-    </header>
-    
-    <main class="container mx-auto p-4">
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-semibold">Filters</h2>
-                <button id="toggleFilters" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                    Show/Hide Filters
-                </button>
-            </div>
-            
-            <div id="filterSection" class="filter-section mt-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Common filters -->
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">Modality</label>
-                        <select id="modalityFilter" class="w-full p-2 border rounded">
-                            <option value="">All</option>
-                            <option value="CT">CT</option>
-                            <option value="MR">MR</option>
-                            <option value="US">US</option>
-                            <option value="CR">CR</option>
-                            <option value="DX">DX</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">Study Description</label>
-                        <input type="text" id="studyDescFilter" class="w-full p-2 border rounded" placeholder="Study description">
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">Series Description</label>
-                        <input type="text" id="seriesDe
+
+        <div class="filter-item">
+          <label for="modalityFilter">Modality</label>
+          <input type="text" id="modalityFilter" name="Modality" class="w-full p-2 border rounded" placeholder="Modality" />
+        </div>
+
+        <div class="filter-item">
+          <label for="studyDescriptionFilter">Study Description</label>
+          <input type="text" id="studyDescriptionFilter" name="StudyDescription" class="w-full p-2 border rounded" placeholder="Study Description" />
+        </div>
+
+        <div class="filter-item">
+          <label for="seriesDescriptionFilter">Series Description</label>
+          <input type="text" id="seriesDescriptionFilter" name="SeriesDescription" class="w-full p-2 border rounded" placeholder="Series Description" />
+        </div>
+
+        <div class="filter-item flex items-center gap-2">
+          <label for="pixelSpacingFilter" class="flex-shrink-0">Pixel Spacing</label>
+          <select id="pixelSpacingOperator" name="PixelSpacingOperator" class="p-2 border rounded w-20">
+            <option value="=">=</option>
+            <option value="<"><</option>
+            <option value=">">></option>
+          </select>
+          <input type="number" step="any" id="pixelSpacingFilter" name="PixelSpacing" class="flex-grow p-2 border rounded" placeholder="Pixel Spacing" />
+        </div>
+
+        <div class="filter-item flex items-center gap-2">
+          <label for="fieldOfViewFilter" class="flex-shrink-0">Field Of View</label>
+          <select id="fieldOfViewOperator" name="FieldOfViewOperator" class="p-2 border rounded w-20">
+            <option value="=">=</option>
+            <option value="<"><</option>
+            <option value=">">></option>
+          </select>
+          <input type="number" step="any" id="fieldOfViewFilter" name="FieldOfView" class="flex-grow p-2 border rounded" placeholder="Field Of View" />
+        </div>
+
+        <div class="filter-item">
+          <label for="patientIDFilter">Patient ID</label>
+          <input type="text" id="patientIDFilter" name="PatientID" class="w-full p-2 border rounded" placeholder="Patient ID" />
+        </div>
+
+        <div class="filter-item">
+          <label for="studyInstanceUIDFilter">Study Instance UID</label>
+          <input type="text" id="studyInstanceUIDFilter" name="StudyInstanceUID" class="w-full p-2 border rounded" placeholder="Study Instance UID" />
+        </div>
+
+        <div class="filter-item">
+          <label for="seriesInstanceUIDFilter">Series Instance UID</label>
+          <input type="text" id="seriesInstanceUIDFilter" name="SeriesInstanceUID" class="w-full p-2 border rounded" placeholder="Series Instance UID" />
+        </div>
+
+        <div class="filter-item">
+          <label for="sopInstanceUIDFilter">SOP Instance UID</label>
+          <input type="text" id="sopInstanceUIDFilter" name="SOPInstanceUID" class="w-full p-2 border rounded" placeholder="SOP Instance UID" />
+        </div>
+
+        <div class="filter-item">
+          <label for="kvpFilter">KVP</label>
+          <input type="number" step="any" id="kvpFilter" name="KVP" class="w-full p-2 border rounded" placeholder="KVP" />
+        </div>
+
+        <div class="filter-item">
+          <label for="exposureInmAsFilter">Exposure In mAs</label>
+          <input type="number" step="any" id="exposureInmAsFilter" name="ExposureInmAs" class="w-full p-2 border rounded" placeholder="Exposure In mAs" />
+        </div>
+
+        <div class="filter-item">
+          <label for="convolutionKernelFilter">Convolution Kernel</label>
+          <input type="text" id="convolutionKernelFilter" name="ConvolutionKernel" class="w-full p-2 border rounded" placeholder="Convolution Kernel" />
+        </div>
+
+        <div class="filter-item">
+          <label for="repetitionTimeFilter">Repetition Time</label>
+          <input type="number" step="any" id="repetitionTimeFilter" name="RepetitionTime" class="w-full p-2 border rounded" placeholder="Repetition Time" />
+        </div>
+
+        <div class="filter-item">
+          <label for="echoTimeFilter">Echo Time</label>
+          <input type="number" step="any" id="echoTimeFilter" name="EchoTime" class="w-full p-2 border rounded" placeholder="Echo Time" />
+        </div>
+
+        <div class="filter-item">
+          <label for="inversionTimeFilter">Inversion Time</label>
+          <input type="number" step="any" id="inversionTimeFilter" name="InversionTime" class="w-full p-2 border rounded" placeholder="Inversion Time" />
+        </div>
+
+        <div class="filter-item">
+          <label for="receiveCoilNameFilter">Receive Coil Name</label>
+          <input type="text" id="receiveCoilNameFilter" name="ReceiveCoilName" class="w-full p-2 border rounded" placeholder="Receive Coil Name" />
+        </div>
+
+        <div class="filter-item">
+          <label for="bodyPartExaminedFilter">Body Part Examined</label>
+          <input type="text" id="bodyPartExaminedFilter" name="BodyPartExamined" class="w-full p-2 border rounded" placeholder="Body Part Examined" />
+        </div>
+
+        <div class="filter-item">
+          <label for="seriesDateTimeFilter">Series Date Time</label>
+          <input type="text" id="seriesDateTimeFilter" name="SeriesDateTime" class="w-full p-2 border rounded" placeholder="Series Date Time (ISO format)" />
+        </div>
+
+        <div class="filter-item">
+          <label for="manufacturerFilter">Manufacturer</label>
+          <input type="text" id="manufacturerFilter" name="Manufacturer" class="w-full p-2 border rounded" placeholder="Manufacturer" />
+        </div>
+
+        <div class="filter-item">
+          <label for="softwareVersionFilter">Software Version</label>
+          <input type="text" id="softwareVersionFilter" name="SoftwareVersion" class="w-full p-2 border rounded" placeholder="Software Version" />
+        </div>
+
+        <div class="filter-item">
+          <label for="modelNameFilter">Model Name</label>
+          <input type="text" id="modelNameFilter" name="ModelName" class="w-full p-2 border rounded" placeholder="Model Name" />
+        </div>
+
+        <div class="filter-item">
+          <label for="angioFlagFilter">Angio Flag</label>
+          <input type="checkbox" id="angioFlagFilter" name="AngioFlag" />
+        </div>
+
+        <div class="filter-item">
+          <label for="diffusionFilter">Diffusion</label>
+          <input type="checkbox" id="diffusionFilter" name="Diffusion" />
+        </div>
+
+        <div class="flex gap-2 mt-4">
+          <button type="button" id="searchButton" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex-grow">
+            Search
+          </button>
+          <button type="button" id="exportButton" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex-grow">
+            Export CSV
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="hidden bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-semibold mb-4">Search Results</h2>
+      <table class="min-w-full table-auto border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border border-gray-300 px-4 py-2">File Path</th>
+            <th class="border border-gray-300 px-4 py-2">Modality</th>
+            <th class="border border-gray-300 px-4 py-2">Study Description</th>
+            <th class="border border-gray-300 px-4 py-2">Series Description</th>
+            <th class="border border-gray-300 px-4 py-2">Patient ID</th>
+            <th class="border border-gray-300 px-4 py-2">Study Instance UID</th>
+            <th class="border border-gray-300 px-4 py-2">Series Instance UID</th>
+            <th class="border border-gray-300 px-4 py-2">SOP Instance UID</th>
+            <th class="border border-gray-300 px-4 py-2">Slice Thickness</th>
+            <th class="border border-gray-300 px-4 py-2">Image Position Patient</th>
+            <th class="border border-gray-300 px-4 py-2">Image Orientation Patient</th>
+            <th class="border border-gray-300 px-4 py-2">Pixel Spacing</th>
+            <th class="border border-gray-300 px-4 py-2">Field Of View</th>
+            <th class="border border-gray-300 px-4 py-2">KVP</th>
+            <th class="border border-gray-300 px-4 py-2">Exposure In mAs</th>
+            <th class="border border-gray-300 px-4 py-2">Convolution Kernel</th>
+            <th class="border border-gray-300 px-4 py-2">Repetition Time</th>
+            <th class="border border-gray-300 px-4 py-2">Echo Time</th>
+            <th class="border border-gray-300 px-4 py-2">Inversion Time</th>
+            <th class="border border-gray-300 px-4 py-2">Receive Coil Name</th>
+            <th class="border border-gray-300 px-4 py-2">Body Part Examined</th>
+            <th class="border border-gray-300 px-4 py-2">Series Date Time</th>
+            <th class="border border-gray-300 px-4 py-2">Manufacturer</th>
+            <th class="border border-gray-300 px-4 py-2">Software Version</th>
+            <th class="border border-gray-300 px-4 py-2">Model Name</th>
+            <th class="border border-gray-300 px-4 py-2">Angio Flag</th>
+            <th class="border border-gray-300 px-4 py-2">Diffusion</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody">
+          <!-- Results will be inserted here -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    const loginSection = document.getElementById('loginSection');
+    const filterSection = document.getElementById('filterSection');
+    const resultsSection = document.getElementById('resultsSection');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginError.classList.add('hidden');
+
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+
+      // For now, no authentication, just show filters and results
+      // You can implement authentication here if desired
+
+      // Hide login, show filters and results
+      loginSection.classList.add('hidden');
+      filterSection.classList.remove('hidden');
+      resultsSection.classList.remove('hidden');
+    });
+
+    document.getElementById('toggleFilters').addEventListener('click', () => {
+      const filterForm = document.getElementById('filterForm');
+      if (filterForm.style.display === 'none' || filterForm.style.display === '') {
+        filterForm.style.display = 'flex';
+      } else {
+        filterForm.style.display = 'none';
+      }
+    });
+
+    document.getElementById('searchButton').addEventListener('click', async () => {
+      const form = document.getElementById('filterForm');
+      const formData = new FormData(form);
+      const filterParams = {};
+      const operatorParams = {};
+
+      for (const [key, value] of formData.entries()) {
+        if (value.trim() !== '') {
+          if (key.endsWith('Operator')) {
+            operatorParams[key.replace('Operator', '')] = value;
+          } else {
+            filterParams[key] = value.trim();
+          }
+        }
+      }
+
+      // Handle checkboxes separately
+      const angioFlagChecked = document.getElementById('angioFlagFilter')?.checked;
+      if (angioFlagChecked) {
+        filterParams['AngioFlag'] = true;
+      }
+      const diffusionChecked = document.getElementById('diffusionFilter')?.checked;
+      if (diffusionChecked) {
+        filterParams['Diffusion'] = true;
+      }
+
+      // Build MongoDB filter object
+      const mongoFilters = {};
+
+      const numericFields = new Set([
+        'SliceThickness',
+        'ImagePositionPatient',
+        'PixelSpacing',
+        'FieldOfView',
+        'KVP',
+        'ExposureInmAs',
+        'RepetitionTime',
+        'EchoTime',
+        'InversionTime'
+      ]);
+
+      for (const [field, val] of Object.entries(filterParams)) {
+        if (typeof val === 'boolean') {
+          mongoFilters[field] = val;
+        } else if (numericFields.has(field)) {
+          const op = operatorParams[field] || '=';
+          if (op === '=') {
+            mongoFilters[field] = parseFloat(val);
+          } else if (op === '<') {
+            mongoFilters[field] = { "$lt": parseFloat(val) };
+          } else if (op === '>') {
+            mongoFilters[field] = { "$gt": parseFloat(val) };
+          }
+        } else {
+          // For string fields, use case-insensitive regex for partial match
+          mongoFilters[field] = { "$regex": val, "$options": "i" };
+        }
+      }
+
+      console.log('MongoDB filter object:', mongoFilters);
+
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/dicom_files/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filters: mongoFilters }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.statusText}`);
+        }
+
+        const records = await response.json();
+
+        const resultsBody = document.getElementById('resultsBody');
+        resultsBody.innerHTML = '';
+
+        if (records.length === 0) {
+          resultsBody.innerHTML = '<tr><td colspan="8" class="text-center p-4">No records found.</td></tr>';
+          return;
+        }
+
+        for (const record of records) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="border border-gray-300 px-4 py-2">${record.file_path || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.Modality || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.StudyDescription || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.SeriesDescription || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.PatientID || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.StudyInstanceUID || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.SeriesInstanceUID || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.SOPInstanceUID || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.SliceThickness || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.ImagePositionPatient || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.ImageOrientationPatient || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.PixelSpacing || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.FieldOfView || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.KVP || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.ExposureInmAs || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.ConvolutionKernel || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.RepetitionTime || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.EchoTime || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.InversionTime || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.ReceiveCoilName || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.BodyPartExamined || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.SeriesDateTime || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.Manufacturer || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.SoftwareVersion || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.ModelName || ''}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.AngioFlag ? 'Yes' : 'No'}</td>
+            <td class="border border-gray-300 px-4 py-2">${record.Diffusion ? 'Yes' : 'No'}</td>
+          `;
+          resultsBody.appendChild(tr);
+        }
+      } catch (error) {
+        console.error('Error fetching records:', error);
+        alert('Failed to fetch records. See console for details.');
+      }
+    });
+
+    // Export CSV functionality
+    document.getElementById('exportButton').addEventListener('click', () => {
+      const rows = [];
+      const headers = [
+        'File Path',
+        'Modality',
+        'Study Description',
+        'Series Description',
+        'Patient ID',
+        'StudyInstanceUID',
+        'SeriesInstanceUID',
+        'SOPInstanceUID',
+        'SliceThickness',
+        'ImagePositionPatient',
+        'ImageOrientationPatient',
+        'PixelSpacing',
+        'FieldOfView',
+        'KVP',
+        'ExposureInmAs',
+        'ConvolutionKernel',
+        'RepetitionTime',
+        'EchoTime',
+        'InversionTime',
+        'ReceiveCoilName',
+        'BodyPartExamined',
+        'SeriesDateTime',
+        'Manufacturer',
+        'SoftwareVersion',
+        'ModelName',
+        'AngioFlag',
+        'Diffusion'
+      ];
+      rows.push(headers.join(','));
+
+      const resultsBody = document.getElementById('resultsBody');
+      for (const tr of resultsBody.querySelectorAll('tr')) {
+        const cols = tr.querySelectorAll('td');
+        const row = [];
+        for (const td of cols) {
+          let text = td.textContent || '';
+          // Remove commas to avoid CSV issues
+          text = text.replace(/,/g, '');
+          row.push(`"${text}"`);
+        }
+        rows.push(row.join(','));
+      }
+
+      const csvContent = rows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'dicom_records.csv';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
