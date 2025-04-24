@@ -6,5 +6,6 @@
     "collection_name": "dicom_files",
     "admin_email": "bje001@gmail.com",
     "admin_password": "Btz0TanFSV9njD",
-    "max_workers": 8
+    "max_workers": 8,
+    "pocketbase_executable": "/Users/bje/pocketbase"
 }
