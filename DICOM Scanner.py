@@ -8,6 +8,11 @@ from pymongo import MongoClient
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
+FRIENDLY = True
+
+if FRIENDLY:
+    from time import sleep
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -55,6 +60,8 @@ class DicomScanner:
                     for file in files:
                         file_path = os.path.join(root, file)
                         dicom_files.append(file_path)
+                        if FRIENDLY:
+                            sleep(0.1)
             except Exception as e:
                 logger.error(f"Error scanning directory {directory}: {e}")
         
@@ -124,6 +131,9 @@ class DicomScanner:
                 logger.warning(f"File not found when trying to extract tags: {file_path}. Skipping.")
                 return None
             ds = pydicom.dcmread(file_path)
+            if FRIENDLY:
+                sleep(0.1)
+
         except:
             return None
         
