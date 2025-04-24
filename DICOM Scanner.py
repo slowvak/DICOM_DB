@@ -8,7 +8,7 @@ from pymongo import MongoClient
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-FRIENDLY = True
+FRIENDLY = False
 
 if FRIENDLY:
     from time import sleep
