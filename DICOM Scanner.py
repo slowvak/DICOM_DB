@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 FRIENDLY = False
+MAX_BATCH = 100000
 
 if FRIENDLY:
     from time import sleep
@@ -53,6 +54,7 @@ class DicomScanner:
     def find_dicom_files(self):
         """Find all DICOM files in the configured directories"""
         dicom_files = []
+        batch = 0
         for directory in self.scan_directories:
             logger.info(f"Scanning directory: {directory}")
             try:
@@ -60,6 +62,10 @@ class DicomScanner:
                     for file in files:
                         file_path = os.path.join(root, file)
                         dicom_files.append(file_path)
+                        batch += 1
+                        if batch > MAX_BATCH:
+                            logger.info(f"Found MAX_BATCH DICOM files")
+                            return dicom_files
                         if FRIENDLY:
                             sleep(0.1)
             except Exception as e:
@@ -257,15 +263,18 @@ class DicomScanner:
     
     def scan_and_store(self):
         """Scan directories for DICOM files and store them in MongoDB"""
-        dicom_files = self.find_dicom_files()
-        
-        success_count = 0
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            results = list(executor.map(self.process_file, dicom_files))
-            success_count = sum(1 for result in results if result)
-        
-        logger.info(f"Successfully processed {success_count} out of {len(dicom_files)} DICOM files")
-
+        while True:
+            dicom_files = self.find_dicom_files()
+            
+            success_count = 0
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                results = list(executor.map(self.process_file, dicom_files))
+                success_count = sum(1 for result in results if result)
+            
+            logger.info(f"Successfully processed {success_count} out of {len(dicom_files)} DICOM files")
+            if len(dicom_files) < MAX_BATCH:
+                return
+            
 if __name__ == "__main__":
     scanner = DicomScanner("./config.json")
     scanner.scan_and_store()
