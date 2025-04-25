@@ -159,7 +159,7 @@ class DicomScanner:
             try:
                 ComputedDateTime = datetime.strptime(s, '%Y%m%d%H%M%S')
             except:
-                ComputedDateTime = datetime(2001, 01,01,12,00,00)
+                ComputedDateTime = datetime(2001, 1, 1, 12, 0, 0)
             
             try:
                 Modality = self._get_tag_value(ds, "Modality", "NA")
