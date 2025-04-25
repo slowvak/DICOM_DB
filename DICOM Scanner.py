@@ -156,7 +156,49 @@ class DicomScanner:
             if len(SeriesTime) < 1:
                 SeriesTime = '120000'
             s = SeriesDate + SeriesTime
-            ComputedDateTime = datetime.strptime(s, '%Y%m%d%H%M%S')
+            try:
+                ComputedDateTime = datetime.strptime(s, '%Y%m%d%H%M%S')
+            except:
+                ComputedDateTime = datetime(2001, 01,01,12,00,00)
+            
+            try:
+                Modality = self._get_tag_value(ds, "Modality", "NA")
+                SliceThickness = self._get_tag_value(ds, "SliceThickness", 0.0)
+                StudyDescription = self._get_tag_value(ds, "StudyDescription", "No Study Description").replace("^", " ")
+                SeriesDescription = self._get_tag_value(ds, "SeriesDescription", "No Series Description").replace("^", " ")
+                ImagePositionPatient = self._get_tag_value(ds, "ImagePositionPatient", 0.0)
+                PatientID = self._get_tag_value(ds, "PatientID", "NotKnown")
+                StudyInstanceUID = self._get_tag_value(ds, "StudyInstanceUID", "NotKnown")
+                SeriesInstanceUID = self._get_tag_value(ds, "SeriesInstanceUID", "NotKnown")
+                SOPInstanceUID = self._get_tag_value(ds, "SOPInstanceUID", "NotKnown")
+                PixelSpacing = self._get_tag_value(ds, "PixelSpacing", 0)
+            except:
+                pass
+
+            try:
+                FieldOfView = self._get_tag_value(ds, "FieldOfView", 0)
+                KVP = self._get_tag_value(ds, "KVP", 0)
+                Exposure = self._get_tag_value(ds, "Exposure", 0)
+                ConvolutionKernel = self._get_tag_value(ds, "ConvolutionKernel", "Unknown")
+            except:
+                pass
+
+            try:
+                RepetitionTime = self._get_tag_value(ds, "RepetitionTime",0)
+                EchoTime = self._get_tag_value(ds, "EchoTime",0)
+                InversionTime = self._get_tag_value(ds, "InversionTime", 0)
+                ReceiveCoilName = self._get_tag_value(ds, "ReceiveCoilName", "Unknown")
+            except:
+                pass
+
+            try:
+                BodyPartExamined = self._get_tag_value(ds, "BodyPartExamined", "Unknown")
+                Manufacturer = self._get_tag_value(ds, "Manufacturer", "Unknown")
+                SoftwareVersion = self._get_tag_value(ds, "SoftwareVersions", "Unknown")
+                ModelName = self._get_tag_value(ds, "Manufacturer", "Unknown")
+                AngioFlag = self._get_tag_value(ds, "AngioFlag", False)
+            except:
+                pass
 
             if "ImageOrientationPatient" in ds:
                 Image_Orientation = self._compute_orientation(ds)
@@ -169,31 +211,31 @@ class DicomScanner:
 
             data = {
                 "file_path": file_path,
-                "Modality": self._get_tag_value(ds, "Modality", "NA"),
-                "SliceThickness": self._get_tag_value(ds, "SliceThickness", 0.0),
-                "StudyDescription": self._get_tag_value(ds, "StudyDescription", "No Study Description").replace("^", " "),
-                "SeriesDescription": self._get_tag_value(ds, "SeriesDescription", "No Series Description").replace("^", " "),
-                "ImagePositionPatient": self._get_tag_value(ds, "ImagePositionPatient", 0.0),
+                "Modality": Modality,
+                "SliceThickness": SliceThickness,
+                "StudyDescription": StudyDescription,
+                "SeriesDescription": SeriesDescription,
+                "ImagePositionPatient": ImagePositionPatient,
                 "ImageOrientationPatient": Image_Orientation,
-                "PatientID": self._get_tag_value(ds, "PatientID", "NotKnown"),
-                "StudyInstanceUID": self._get_tag_value(ds, "StudyInstanceUID", "NotKnown"),
-                "SeriesInstanceUID": self._get_tag_value(ds, "SeriesInstanceUID", "NotKnown"),
-                "SOPInstanceUID": self._get_tag_value(ds, "SOPInstanceUID", "NotKnown"),
-                "PixelSpacing": self._get_tag_value(ds, "PixelSpacing", 0),
-                "FieldOfView": self._get_tag_value(ds, "FieldOfView", 0),
-                "KVP": self._get_tag_value(ds, "KVP", 0),
-                "Exposure": self._get_tag_value(ds, "Exposure", 0),
-                "ConvolutionKernel": self._get_tag_value(ds, "ConvolutionKernel", "Unknown"),
-                "RepetitionTime": self._get_tag_value(ds, "RepetitionTime",0),
-                "EchoTime": self._get_tag_value(ds, "EchoTime",0),
-                "InversionTime": self._get_tag_value(ds, "InversionTime", 0),
-                "ReceiveCoilName": self._get_tag_value(ds, "ReceiveCoilName", "Unknown"),
-                "BodyPartExamined": self._get_tag_value(ds, "BodyPartExamined", "Unknown"),
+                "PatientID": PatientID,
+                "StudyInstanceUID": StudyInstanceUID,
+                "SeriesInstanceUID": SeriesInstanceUID,
+                "SOPInstanceUID": SOPInstanceUID,
+                "PixelSpacing": PixelSpacing,
+                "FieldOfView": FieldOfView,
+                "KVP": KVP,
+                "Exposure": Exposure,
+                "ConvolutionKernel": ConvolutionKernel,
+                "RepetitionTime": RepetitionTime,
+                "EchoTime": EchoTime,
+                "InversionTime": InversionTime,
+                "ReceiveCoilName": ReceiveCoilName,
+                "BodyPartExamined": BodyPartExamined,
                 "SeriesDateTime" : ComputedDateTime.isoformat(),
-                "Manufacturer": self._get_tag_value(ds, "Manufacturer", "Unknown"),
-                "SoftwareVersion": self._get_tag_value(ds, "SoftwareVersions", "Unknown"),
-                "ModelName": self._get_tag_value(ds, "Manufacturer", "Unknown"),
-                "AngioFlag": self._get_tag_value(ds, "AngioFlag", False),
+                "Manufacturer": Manufacturer,
+                "SoftwareVersion": SoftwareVersion,
+                "ModelName": ModelName,
+                "AngioFlag": AngioFlag,
                 "Diffusion": IsDiffusion
             }
         
@@ -272,18 +314,25 @@ class DicomScanner:
     
     def scan_and_store(self):
         """Scan directories for DICOM files and store them in MongoDB"""
-        while True:
-            dicom_files = self.find_dicom_files()
-            
-            success_count = 0
-            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                results = list(executor.map(self.process_file, dicom_files))
-                success_count = sum(1 for result in results if result)
-            
-            logger.info(f"Successfully processed {success_count} out of {len(dicom_files)} DICOM files")
-            print (f"Successfully processed {success_count} out of {len(dicom_files)} DICOM files")
-            if len(dicom_files) < MAX_BATCH:
-                return
+#            dicom_files = self.find_dicom_files()
+
+        cnt = 0
+        success_count = 0            
+        for directory in self.scan_directories:
+            logger.info(f"Scanning directory: {directory}")
+            for root, _, files in os.walk(directory):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    cnt += 1
+                    # Check if the file_path is already in the database
+                    if self.mongo_collection.find_one({"file_path": file_path}):
+                        continue
+
+                    if self.process_file(file_path):
+                        success_count += 1
+                    if cnt % 1000 == 0:
+                        logger.info(f"Successfully processed {success_count} out of {cnt} files")
+                        print (f"Successfully processed {success_count} out of {cnt} files")
             
 if __name__ == "__main__":
     scanner = DicomScanner("./config.json")

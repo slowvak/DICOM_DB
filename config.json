@@ -1,5 +1,6 @@
 {
     "scan_directories": [
+        "/Users/bje/Desktop/CTs",
         "/media/bje01/26922a53-9079-4fad-b4e6-3d77349b9244/ImageData/"
     ],
     "collection_name": "dicom_files",
